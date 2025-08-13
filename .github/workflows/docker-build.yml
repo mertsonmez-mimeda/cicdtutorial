@@ -3,6 +3,9 @@ name: Docker Build & Push
 on:
   push:
     branches: [development, staging, main]
+  pull_request:
+    branches: [development, staging, main]
+    
   workflow_dispatch:
 
 permissions:
