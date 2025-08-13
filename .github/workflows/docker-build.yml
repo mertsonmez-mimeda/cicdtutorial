@@ -1,0 +1,48 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [development, staging, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write  # GHCR push için şart
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+  IMAGE_NAME: webapplication1
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set TAG
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "development" ]; then echo "TAG=dev" >> $GITHUB_ENV; fi
+          if [ "${GITHUB_REF_NAME}" = "staging" ]; then echo "TAG=staging" >> $GITHUB_ENV; fi
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then echo "TAG=latest" >> $GITHUB_ENV; fi
+          echo "SHA_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: WebApplication1/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}:${{ env.SHA_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
